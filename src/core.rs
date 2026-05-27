@@ -1,25 +1,33 @@
-use crate::db::{Database, DatabaseConfig};
-use crate::types::{DatabaseType, RecallResult};
+use crate::{
+    Database, DatabaseConfig, DatabaseType, LocalDatabase, Message, RecallResult, StorageType,
+};
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
-/// Configuration for MemContext
+/// Global session storage (memory cache)
+pub(crate) static SESSION_CACHE: Lazy<Arc<RwLock<HashMap<String, Vec<Message>>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+
 #[derive(Debug, Clone)]
 pub struct MemContextConfig {
-    /// Storage path for session data (for file-based databases like SQLite)
-    pub storage_path: Option<String>,
-    /// Database type to use
+    /// storage type
+    pub storage_type: StorageType,
     pub db_type: Option<DatabaseType>,
-    /// Additional database connection options
-    pub connection_string: Option<String>,
+    pub lancedb_storage_path: Option<String>,
+    pub sqlite_storage_path: Option<String>,
+    pub local_storage_path: Option<String>,
 }
 
 impl Default for MemContextConfig {
     fn default() -> Self {
         Self {
-            storage_path: Some("./memcontext_data".to_string()),
+            storage_type: StorageType::DB,
+            sqlite_storage_path: Some("./memcontext_data".to_string()),
             db_type: Some(DatabaseType::SQLite),
-            connection_string: None,
+            lancedb_storage_path: None,
+            local_storage_path: None,
         }
     }
 }
@@ -32,16 +40,34 @@ pub struct MemContext {
 
 impl MemContext {
     pub async fn new(config: MemContextConfig) -> Result<Self, Box<dyn std::error::Error>> {
-        let db_config = DatabaseConfig {
-            db_type: config.db_type.clone().unwrap_or(DatabaseType::SQLite),
-            storage_path: config.storage_path.clone(),
-            connection_string: config.connection_string.clone(),
+        let db: Arc<dyn Database + Send + Sync> = match config.storage_type {
+            StorageType::DB => {
+                let db_type = config.db_type.clone().unwrap_or(DatabaseType::SQLite);
+                let (sqlite_path, lancedb_path) = match db_type {
+                    DatabaseType::SQLite => (config.sqlite_storage_path.clone(), None),
+                    DatabaseType::LanceDB => (None, config.lancedb_storage_path.clone()),
+                    _ => (None, None),
+                };
+                let db_config = DatabaseConfig {
+                    db_type,
+                    sqlite_storage_path: sqlite_path,
+                    lancedb_storage_path: lancedb_path,
+                };
+                let db = crate::db::create_database(db_config).await?;
+                let db: Arc<dyn Database + Send + Sync> = Arc::from(db);
+                db
+            }
+            StorageType::Local => {
+                let path = config
+                    .local_storage_path
+                    .as_deref()
+                    .unwrap_or("./memcontext_data");
+                let db = LocalDatabase::new(path).await?;
+                let db: Arc<dyn Database + Send + Sync> = Arc::new(db);
+                db
+            }
         };
-        let db = crate::db::create_database(db_config).await?;
-        Ok(Self {
-            config,
-            db: Arc::from(db),
-        })
+        Ok(Self { config, db })
     }
 
     /// Store user chat message
