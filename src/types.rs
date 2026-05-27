@@ -9,21 +9,13 @@ pub enum StorageType {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DatabaseType {
-    MySQL, // version >= 8.4.0
-    PostgreSQL,
     SQLite,
-    Redis,
-    LanceDB,
 }
 
 impl std::fmt::Display for DatabaseType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DatabaseType::MySQL => write!(f, "mysql"),
-            DatabaseType::PostgreSQL => write!(f, "postgresql"),
             DatabaseType::SQLite => write!(f, "sqlite"),
-            DatabaseType::Redis => write!(f, "redis"),
-            DatabaseType::LanceDB => write!(f, "lanceDB"),
         }
     }
 }
