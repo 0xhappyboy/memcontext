@@ -1,14 +1,6 @@
-use crate::{
-    Database, DatabaseConfig, DatabaseType, LocalDatabase, Message, RecallResult, StorageType,
-};
-use once_cell::sync::Lazy;
+use crate::{Database, DatabaseConfig, DatabaseType, LocalDatabase, RecallResult, StorageType};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
-
-/// Global session storage (memory cache)
-pub(crate) static SESSION_CACHE: Lazy<Arc<RwLock<HashMap<String, Vec<Message>>>>> =
-    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 #[derive(Debug, Clone)]
 pub struct MemContextConfig {
@@ -43,18 +35,16 @@ impl MemContext {
         let db: Arc<dyn Database + Send + Sync> = match config.storage_type {
             StorageType::DB => {
                 let db_type = config.db_type.clone().unwrap_or(DatabaseType::SQLite);
-                let (sqlite_path, lancedb_path) = match db_type {
-                    DatabaseType::SQLite => (config.sqlite_storage_path.clone(), None),
-                    DatabaseType::LanceDB => (None, config.lancedb_storage_path.clone()),
-                    _ => (None, None),
+                let sqlite_path = match db_type {
+                    DatabaseType::SQLite => config.sqlite_storage_path.clone(),
+                    _ => None,
                 };
                 let db_config = DatabaseConfig {
                     db_type,
                     sqlite_storage_path: sqlite_path,
-                    lancedb_storage_path: lancedb_path,
                 };
                 let db = crate::db::create_database(db_config).await?;
-                let db: Arc<dyn Database + Send + Sync> = Arc::from(db);
+                let db: Arc<dyn Database + Send + Sync> = db.into();
                 db
             }
             StorageType::Local => {
