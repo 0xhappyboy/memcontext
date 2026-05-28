@@ -36,7 +36,6 @@ impl SQLiteDatabase {
         Ok(Self { pool })
     }
 
-    // Bag-of-words model.
     fn generate_vector(content: &str) -> Vec<f32> {
         let mut vector = vec![0.0f32; VECTOR_DIMENSION];
         let content_lower = content.to_lowercase();
@@ -79,7 +78,6 @@ impl SQLiteDatabase {
         vector
     }
 
-    // Calculate cosine similarity
     fn cosine_similarity(v1: &[f32], v2: &[f32]) -> f32 {
         let dot: f32 = v1.iter().zip(v2.iter()).map(|(a, b)| a * b).sum();
         let norm1: f32 = v1.iter().map(|&x| x * x).sum::<f32>().sqrt();

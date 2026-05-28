@@ -60,25 +60,14 @@ impl MemContext {
         Ok(Self { config, db })
     }
 
-    /// Store user chat message
-    pub async fn storage_user_chat(
+    /// Store a message with explicit role
+    pub async fn store_message(
         &self,
         session_id: String,
-        chat: String,
+        role: String,
+        content: String,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        self.db.save_message(&session_id, "user", &chat).await?;
-        Ok(())
-    }
-
-    /// Store LLM chat message
-    pub async fn storage_llm_chat(
-        &self,
-        session_id: String,
-        chat: String,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        self.db
-            .save_message(&session_id, "assistant", &chat)
-            .await?;
+        self.db.save_message(&session_id, &role, &content).await?;
         Ok(())
     }
 
