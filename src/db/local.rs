@@ -1,5 +1,5 @@
+use crate::Database;
 use crate::Message;
-use crate::{Database, Role};
 use async_trait::async_trait;
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 use tokio::sync::RwLock;
@@ -61,12 +61,11 @@ impl Database for LocalDatabase {
         let messages = sessions
             .entry(session_id.to_string())
             .or_insert_with(Vec::new);
-        let role_enum = match role {
-            "user" => Role::User,
-            "assistant" => Role::LLM,
-            _ => Role::User,
-        };
-        let mut message = Message::new(session_id.to_string(), role_enum, content.to_string());
+        let mut message = Message::new(
+            session_id.to_string(),
+            role.to_string(),
+            content.to_string(),
+        );
         message.id = Some(messages.len() as u64 + 1);
         messages.push(message);
         self.save_session(session_id, messages).await?;
@@ -143,7 +142,6 @@ impl Database for LocalDatabase {
         query: &str,
         top_k: usize,
     ) -> Result<Vec<Message>, Box<dyn std::error::Error>> {
-        // Local file storage does not support semantic search, this is a fallback mechanism.
         eprintln!(
             "Warning: LocalDatabase does not support semantic search, falling back to keyword search"
         );

@@ -1,4 +1,4 @@
-use crate::{Database, DatabaseConfig, DatabaseType, Message, Role};
+use crate::{Database, DatabaseConfig, DatabaseType, Message};
 use async_trait::async_trait;
 
 const VECTOR_DIMENSION: usize = 384;
@@ -145,15 +145,10 @@ impl Database for SQLiteDatabase {
         .await?;
         let mut messages = Vec::new();
         for row in rows {
-            let role = if row.2 == "user" {
-                Role::User
-            } else {
-                Role::LLM
-            };
             messages.push(Message {
                 id: Some(row.0 as u64),
                 session_id: row.1,
-                role,
+                role: row.2,
                 content: row.3,
                 timestamp: row.4,
                 tokens: row.5.map(|t| t as usize),
@@ -199,15 +194,10 @@ impl Database for SQLiteDatabase {
         let rows = query_builder.fetch_all(&self.pool).await?;
         let mut messages = Vec::new();
         for row in rows {
-            let role = if row.2 == "user" {
-                Role::User
-            } else {
-                Role::LLM
-            };
             messages.push(Message {
                 id: Some(row.0 as u64),
                 session_id: row.1,
-                role,
+                role: row.2,
                 content: row.3,
                 timestamp: row.4,
                 tokens: row.5.map(|t| t as usize),
@@ -245,15 +235,10 @@ impl Database for SQLiteDatabase {
         .await?;
         let mut scored: Vec<(f32, Message)> = Vec::new();
         for row in rows {
-            let role = if row.2 == "user" {
-                Role::User
-            } else {
-                Role::LLM
-            };
             let message = Message {
                 id: Some(row.0 as u64),
                 session_id: row.1,
-                role,
+                role: row.2,
                 content: row.3,
                 timestamp: row.4,
                 tokens: row.5.map(|t| t as usize),

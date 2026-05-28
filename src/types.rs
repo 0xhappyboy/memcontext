@@ -20,33 +20,18 @@ impl std::fmt::Display for DatabaseType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Role {
-    User,
-    LLM,
-}
-
-impl std::fmt::Display for Role {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Role::User => write!(f, "user"),
-            Role::LLM => write!(f, "assistant"),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
     pub id: Option<u64>,
     pub session_id: String,
-    pub role: Role,
+    pub role: String,
     pub content: String,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub tokens: Option<usize>,
 }
 
 impl Message {
-    pub fn new(session_id: String, role: Role, content: String) -> Self {
+    pub fn new(session_id: String, role: String, content: String) -> Self {
         Self {
             id: None,
             session_id,
